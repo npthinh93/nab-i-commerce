@@ -1,0 +1,60 @@
+version: "3.4"
+
+services:
+  config-service:
+    build:
+      context: ./config-service
+      dockerfile: ./Dockerfile
+    image: config-service
+    ports:
+      - 8012:8012
+    container_name: config-service
+
+  icommerce-mysql:
+    image: mysql:8.0.20
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_USER: "user"
+      MYSQL_PASSWORD: "password"
+      MYSQL_DATABASE: "icommerce"
+      MYSQL_ROOT_PASSWORD: root
+    command: mysqld --lower_case_table_names=1 --skip-ssl --character_set_server=utf8mb4 --explicit_defaults_for_timestamp
+    container_name: icommerce-mysql
+
+  icommerce-mongo:
+    image: mongo
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: "icommerce"
+      MONGODB_USERNAME: "user"
+      MONGODB_PASSWORD: "password"
+    volumes:
+      - ./mongo/docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    container_name: icommerce-mongo
+
+  icommerce-zookeeper:
+    image: confluentinc/cp-zookeeper:5.5.0
+    container_name: icommerce-zookeeper
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  icommerce-kafka:
+    image: confluentinc/cp-kafka:5.5.0
+    container_name: icommerce-kafka
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: localhost
+      KAFKA_ZOOKEEPER_CONNECT: icommerce-zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
